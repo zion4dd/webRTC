@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сигнальный сервер WebRTC</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+</head>
+<body>
+    <h2>Сигнальный сервер WebRTC</h2>
+    <script>
+        const socket = io('http://localhost:5000');
+
+        socket.on('message', function(data) {
+            console.log('Received message:', data);
+        });
+
+        socket.on('offer', function(data) {
+            console.log('Received offer:', data);
+        });
+
+        socket.on('answer', function(data) {
+            console.log('Received answer:', data);
+        });
+
+        socket.on('ice-candidate', function(data) {
+            console.log('Received ICE candidate:', data);
+        });
+
+        // Пример отправки сообщения
+        socket.emit('message', { text: 'Hello from client!' });
+    </script>
+</body>
+</html>

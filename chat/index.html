@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат</title>
+</head>
+<body>
+    <h1>Чат</h1>
+    <div id="messages"></div>
+    <input id="messageInput" autocomplete="off" />
+    <button onclick="sendMessage()">Отправить</button>
+
+    <script>
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value;
+
+            fetch('http://127.0.0.1:5555/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'message=' + encodeURIComponent(message)
+            })
+            .then(response => {
+                if (response.ok) {
+                    input.value = '';
+                }
+            })
+            .catch(error => console.error('Ошибка:', error));
+        }
+    </script>
+</body>
+</html>
