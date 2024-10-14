@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket Test</title>
+    </head>
+    <body>
+        <h1>WebSocket Test</h1>
+        <div id="clients">:</div>
+        <br><br>
+        <form id="connect">
+            <input type="text" id="clientId" autocomplete="off"/>
+            <button>Connect</button>
+        </form>
+        <br><br>
+        <form id="form">
+            <input type="text" id="message" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id="messages"></ul>
+
+        <video id="localVideo" autoplay muted></video>
+        <video id="remoteVideo" autoplay></video>
+        <button id="startButton">Начать звонок</button>
+        
+        <script>
+            const connect = document.getElementById('connect');
+            const clientId = document.getElementById('clientId');
+            const form = document.getElementById('form');
+            const input = document.getElementById('message');
+            const messages = document.getElementById('messages');
+            const clients = document.getElementById('clients');
+
+            const localVideo = document.getElementById('localVideo');
+            const remoteVideo = document.getElementById('remoteVideo');
+            const startButton = document.getElementById('startButton');
+
+            let localStream;
+            let peerConnection;
+            const server = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' } // STUN-сервер
+                ]
+            };
+
+            connect.onsubmit = function(event) {
+                event.preventDefault();
+                console.log(clientId.value)
+                const ws = new WebSocket(`ws://localhost:8000/call/${clientId.value}`);
+                input.value = '';
+
+                ws.onmessage = async function(event) {
+                    if (event.data.startsWith("@clients:")) {
+                        // Если сообщение начинается с "@clients:", добавляем в объект clients
+                        const clients = document.getElementById('clients');
+                        clients.textContent = event.data;
+                    } else if (event.data.startsWith("ping")) {
+                        console.log(event.data)
+                    } else if (event.data.startsWith("{")) {
+                        await handleSignalingMessage(JSON.parse(event.data))
+                    } else {
+                        const li = document.createElement('li');
+                        li.textContent = event.data;
+                        messages.appendChild(li);
+                    }
+                };
+
+                form.onsubmit = function(event) {
+                    event.preventDefault();
+                    ws.send(input.value);
+                    input.value = '';
+                };
+
+                // Начать звонок
+                startButton.onclick = async () => {
+                    await startCall();
+                };
+
+                async function startCall() {
+                    // Получить локальный медиапоток
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    localVideo.srcObject = localStream;
+                
+                    // Создать соединение пира
+                    peerConnection = new RTCPeerConnection(server);
+                
+                    // Добавить локальные треки в соединение пира
+                    localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, localStream);
+                    });
+                
+                    // Обработать входящий удаленный поток
+                    peerConnection.ontrack = (event) => {
+                        remoteVideo.srcObject = event.streams[0];
+                    };
+                
+                    // Создать предложение и установить локальное описание
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    
+                    // Отправить предложение на сервер сигнализации
+                    console.log(offer)
+                    ws.send(JSON.stringify(offer))
+                }
+
+                // Обработать входящие сообщения сигнализации (реализуйте эту часть)
+                async function handleSignalingMessage(message) {
+                    if (message.type === 'offer') {
+                        // Создать соединение пира
+                        peerConnection = new RTCPeerConnection(server);
+                        
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(message));
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        ws.send(JSON.stringify(answer))
+                        // signalingServer.send({ type: 'answer', answer: answer });
+                        
+                    } else if (message.type === 'answer') {
+                        console.log(message)
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(message));
+
+                    } else if (message.type === 'ice-candidate') {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(message.candidate));
+                    }
+                }
+
+                // Обработать ICE-кандидатов
+                
+            };
+            //peerConnection.onicecandidate = (event) => {
+            //    if (event.candidate) {
+                    // Отправить кандидата на сервер сигнализации (реализуйте эту часть)
+                    // signalingServer.send({ type: 'ice-candidate', candidate: event.candidate });
+            //    }
+            //};
+
+            
+        </script>
+    </body>
+</html>
