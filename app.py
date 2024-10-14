@@ -1,4 +1,4 @@
-# ws://localhost:8000/ws?user_id=1
+# ws://localhost:8000/ws/111
 # uvicorn app:app --reload
 
 import asyncio
@@ -16,7 +16,7 @@ app = FastAPI()
 
 redis = Redis(host="localhost", port=6379, db=0)
 
-user_list = {}
+client_list = {}
 
 
 async def ping(websocket: WebSocket):
@@ -31,15 +31,15 @@ async def ping(websocket: WebSocket):
 
 
 async def broadcast(msg):
-    for user, ws in user_list.items():
+    for client, ws in client_list.items():
         await ws.send_text(msg)
 
 
-async def refresh_users():
-    users_str = "@users:" + ";".join(
-        [str(ws.query_params) for ws in user_list.values()]
+async def refresh_clients():
+    clients_str = "@clients:" + ";".join(
+        [str(key) for key in client_list.keys()]
     )
-    await broadcast(users_str)
+    await broadcast(clients_str)
 
 
 @app.get("/")
@@ -48,16 +48,17 @@ async def get():
     # return HTMLResponse(html)
 
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, user_id=1):
-    print(websocket.query_params, websocket.scope["client"])
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    print(websocket.path_params, websocket.scope["client"])
+    # print(websocket.query_params)
 
     await websocket.accept()
     # Запуск фоновой задачи для отправки пинг-сообщений
     asyncio.create_task(ping(websocket))
 
-    user_list[user_id] = websocket
-    await refresh_users()
+    client_list[client_id] = websocket
+    await refresh_clients()
 
     try:
         while True:
@@ -69,16 +70,16 @@ async def websocket_endpoint(websocket: WebSocket, user_id=1):
                 recipient_id = None
                 msg = data
 
-            if recipient_id in user_list:
-                await user_list[recipient_id].send_text(f"{user_id}: {msg}")
+            if recipient_id in client_list:
+                await client_list[recipient_id].send_text(f"{client_id}: {msg}")
             else:
                 await broadcast(msg)
                 # await websocket.send_text(f"Unknown recipient: {recipient_id}")
 
     except WebSocketDisconnect:
-        del user_list[user_id]
-        await refresh_users()
-        print(f"user {user_id} disconnected")
+        del client_list[client_id]
+        await refresh_clients()
+        print(f"client {client_id} disconnected")
 
 
 if __name__ == "__main__":
