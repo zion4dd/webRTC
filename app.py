@@ -2,43 +2,80 @@
 # uvicorn app:app --reload
 
 import asyncio
+
+# import json
 import logging
-import json
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 # from fastapi.responses import HTMLResponse
-# from fastapi.staticfiles import StaticFiles
-from redis import Redis
+from fastapi.staticfiles import StaticFiles
+
+# from redis import Redis
 from starlette.responses import FileResponse
 
 app = FastAPI()
-# app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-redis = Redis(host="localhost", port=6379, db=0)
-
-client_list = {}
+app.mount("/video", StaticFiles(directory="static", html=True), name="static")
+# redis = Redis(host="localhost", port=6379, db=0)
 
 
-async def ping(websocket: WebSocket):
-    while True:
-        await asyncio.sleep(60)  # Интервал пинга в 60 секунд
-        try:
-            await websocket.send_text("ping")  # Отправка пинг-сообщения
-            logging.warning("ping")
-        except Exception as e:
-            print(f"Ошибка при отправке пинга: {e}")
-            break
+class ConnectionManager:
+    def __init__(self) -> None:
+        self.client_list: dict[int, WebSocket] = {}
+
+    @staticmethod
+    async def ping(websocket: WebSocket):
+        while True:
+            await asyncio.sleep(60)  # Интервал пинга в 60 секунд
+            try:
+                await websocket.send_text("ping")  # Отправка пинг-сообщения
+                logging.warning("ping")
+            except Exception as e:
+                print(f"Ошибка при отправке пинга: {e}")
+                break
+
+    async def _refresh_clients(self):
+        clients_str = "@clients: " + "; ".join(
+            [str(key) for key in self.client_list.keys()]
+        )
+        await self.broadcast(msg=clients_str)
+
+    async def add_client(
+        self, client_id: int, websocket: WebSocket, ping: bool = False
+    ):
+        print(
+            websocket.path_params,
+            # websocket.scope["client"],
+            # websocket.query_params,
+        )
+        await websocket.accept()
+        self.client_list[client_id] = websocket
+        if ping:
+            asyncio.create_task(self.ping(websocket))
+        await self._refresh_clients()
+
+    async def disconnect(self, client_id: int):
+        self.client_list.pop(client_id, None)
+        print(f"client {client_id} disconnected")
+        await self._refresh_clients()
+
+    async def send_pm(self, client_id: int, msg: str = None, json: str = None):
+        ws = self.client_list.get(client_id, None)
+        if ws:
+            if msg:
+                await ws.send_text(msg)
+            if json:
+                await ws.send_json(json)
+
+    async def broadcast(self, msg: str = None, json: str = None):
+        for ws in self.client_list.values():
+            if msg:
+                await ws.send_text(msg)
+            if json:
+                await ws.send_json(json)
 
 
-async def broadcast(msg):
-    for client, ws in client_list.items():
-        await ws.send_text(msg)
-
-
-async def refresh_clients():
-    clients_str = "@clients:" + ";".join([str(key) for key in client_list.keys()])
-    await broadcast(clients_str)
+manager = ConnectionManager()
 
 
 @app.get("/")
@@ -47,7 +84,7 @@ async def index():
     # return HTMLResponse(html)
 
 
-@app.get("/call/")
+@app.get("/video")
 async def call():
     return FileResponse("call.html")
     # return HTMLResponse(html)
@@ -55,78 +92,50 @@ async def call():
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    print(websocket.path_params, websocket.scope["client"])
-    # print(websocket.query_params)
-
-    await websocket.accept()
-    # Запуск фоновой задачи для отправки пинг-сообщений
-    asyncio.create_task(ping(websocket))
-
-    client_list[client_id] = websocket
-    await refresh_clients()
-
+    await manager.add_client(client_id=client_id, websocket=websocket)
     try:
         while True:
             data = await websocket.receive_text()
             print(data)
+            recipient_id = None
+            msg = data
             if data.startswith("@"):
                 recipient_id, msg = data[1:].split(":", 1)
+            if recipient_id:
+                await manager.send_pm(client_id=recipient_id, msg=msg)
             else:
-                recipient_id = None
-                msg = data
-
-            if recipient_id in client_list:
-                await client_list[recipient_id].send_text(f"{client_id}: {msg}")
-            else:
-                await broadcast(msg)
-                # await websocket.send_text(f"Unknown recipient: {recipient_id}")
-
+                await manager.broadcast(msg=msg)
     except WebSocketDisconnect:
-        del client_list[client_id]
-        await refresh_clients()
-        print(f"client {client_id} disconnected")
+        await manager.disconnect(client_id=client_id)
 
 
 @app.websocket("/call/{client_id}")
 async def call_endpoint(websocket: WebSocket, client_id: int):
-    print(websocket.path_params, websocket.scope["client"])
-    # print(websocket.query_params)
-
-    await websocket.accept()
-    # Запуск фоновой задачи для отправки пинг-сообщений
-    # asyncio.create_task(ping(websocket))
-
-    client_list[client_id] = websocket
-    await refresh_clients()
-
+    await manager.add_client(client_id=client_id, websocket=websocket)
+    recipient_id = 11 if client_id == 22 else 22
     try:
         while True:
-            data = await websocket.receive_json()
+            data: dict = await websocket.receive_json()
 
             if data.get("type") == "offer":
-                print("OFFER", data.get("sdp", "empty string")[:100])
-                await client_list[11].send_text(json.dumps(data))
+                print("OFFER", data.get("sdp", "empty string")[:50])
+                await manager.send_pm(client_id=recipient_id, json=data)
+                # await client_list[recipient_id].send_text(json.dumps(data))
 
-            if data.get("type") == "answer":
-                print("ANSWER", data.get("sdp", "empty string")[:100])
-                await client_list[22].send_text(json.dumps(data))
-                 
-            # if data.startswith("@"):
-            #     recipient_id, msg = data[1:].split(":", 1)
-            # else:
-            #     recipient_id = None
-            #     msg = data
+            elif data.get("type") == "answer":
+                print("ANSWER", data.get("sdp", "empty string")[:50])
+                await manager.send_pm(client_id=recipient_id, json=data)
+                # await client_list[recipient_id].send_text(json.dumps(data))
 
-            # if recipient_id in client_list:
-            #     await client_list[recipient_id].send_text(f"{client_id}: {msg}")
-            # else:
-            #     await broadcast(msg)
-            # await websocket.send_text(f"Unknown recipient: {recipient_id}")
+            elif data.get("type") == "icecandidate":
+                print("ICE", data.get("candidate", "empty string"))
+                await manager.send_pm(client_id=recipient_id, json=data)
+
+            else:
+                print("DATA", data)
 
     except WebSocketDisconnect:
-        del client_list[client_id]
-        await refresh_clients()
-        print(f"client {client_id} disconnected")
+        await manager.disconnect(client_id=client_id)
 
 
 if __name__ == "__main__":

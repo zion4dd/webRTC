@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket Test</title>
+    </head>
+    <body>
+        <h1>WebSocket Test</h1>
+        <div id="clients">:</div>
+        <br><br>
+        <form id="connect">
+            <input type="text" id="clientId" autocomplete="off"/>
+            <button>Connect</button>
+        </form>
+        <br><br>
+        <form id="form">
+            <input type="text" id="message" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id="messages"></ul>
+
+        <video id="localVideo" autoplay muted></video>
+        <video id="remoteVideo" autoplay></video>
+        <button id="startButton">Начать звонок</button>
+        <script src="call.js"></script>
+
+    </body>
+</html>
