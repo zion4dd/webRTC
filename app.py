@@ -2,20 +2,18 @@
 # uvicorn app:app --reload
 
 import asyncio
-
-# import json
 import logging
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 # from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-
-# from redis import Redis
 from starlette.responses import FileResponse
 
 app = FastAPI()
 app.mount("/video", StaticFiles(directory="static", html=True), name="static")
+
+# from redis import Redis
 # redis = Redis(host="localhost", port=6379, db=0)
 
 

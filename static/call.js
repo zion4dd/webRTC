@@ -114,6 +114,11 @@ connect.onsubmit = function(event) {
                     }))
                 }
             };
+
+            // Обработать входящий удаленный поток
+            peerConnection.ontrack = (event) => {
+                remoteVideo.srcObject = event.streams[0];
+            };
             
             await peerConnection.setRemoteDescription(new RTCSessionDescription(message));
             console.log(`setRemoteDescription complete`);
