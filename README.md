@@ -1,21 +1,5 @@
-```
-function db(command) {
-        var socket = new WebSocket("ws://localhost:9999");
+https://webrtc.github.io/samples/
 
-        socket.onopen = function() {};
+https://github.com/webrtc/samples/tree/gh-pages
 
-        socket.onclose = function(event) {};
-
-        socket.addEventListener('open', function (event) {
-            socket.send(command);
-        });
-
-        socket.onmessage = function(event) {
-           console.log(event.data)
-        };
-
-        socket.onerror = function(error) {
-            console.log("Ошибка " + error.message);
-        };
-    }
-```
+https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Signaling_and_video_calling#sending_messages_to_the_signaling_server

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket Test</title>
+    </head>
+    <body>
+        <h1>WebSocket Test</h1>
+        <div id="clients">:</div>
+        <br><br>
+        <form id="connect">
+            <input type="text" id="connectId" autocomplete="off"/>
+            <button>Connect</button>
+        </form>
+        <br><br>
+        <form id="form">
+            <input type="text" id="formInput" autocomplete="off"/>
+            <button id="formButton">Send</button>
+        </form>
+        <br><br>
+        <form id="goCall">
+            <input type="text" id="goCallId" autocomplete="off"/>
+            <button id="goCallButton">Call</button>
+        </form>
+        <br><br>
+        <ul id="messages"></ul>
+
+        <video id="localVideo" autoplay muted></video>
+        <video id="remoteVideo" autoplay muted></video>
+        <!-- <button id="startButton">Начать звонок</button> -->
+        <script src="static/script.js"></script>
+
+    </body>
+</html>
