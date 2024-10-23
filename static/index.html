@@ -1,32 +1,44 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>WebSocket Test</title>
+        <title>WebRTC</title>
+        <link rel="stylesheet" href="static/style.css" />
     </head>
     <body>
-        <h1>WebSocket Test</h1>
-        <div id="clients">:</div>
-        <br><br>
-        <form id="connect">
-            <input type="text" id="connectId" autocomplete="off"/>
-            <button>Connect</button>
-        </form>
-        <br><br>
-        <form id="form">
-            <input type="text" id="formInput" autocomplete="off"/>
-            <button id="formButton">Send</button>
-        </form>
-        <br><br>
-        <form id="goCall">
-            <input type="text" id="goCallId" autocomplete="off"/>
-            <button id="goCallButton">Call</button>
-        </form>
-        <br><br>
-        <ul id="messages"></ul>
+        <h1>WebRTC</h1>
+        <div id="container">
+            <div id="left">
+                <div id="clients">:</div>
+                <br><br>
+                <form id="connect">
+                    <input type="text" id="connectId" autocomplete="off"/>
+                    <button class="btn">Connect</button>
+                </form>
+                <br><br>
+                <form id="form">
+                    <input type="text" id="formInput" autocomplete="off"/>
+                    <button class="btn" id="formButton">Send</button>
+                </form>
+                <br><br>
+                <form id="goCall">
+                    <input type="text" id="goCallId" autocomplete="off"/>
+                    <button class="btn" id="goCallButton">Call</button>
+                </form>
+                <br>
+                <button class="btn" id="hangUpButton">hangup</button>
+                <br><br>
+                <ul id="messages"></ul>
+            </div>
+            <div id="right">
+                <!-- <div id="right-in">
+                    ffff -->
+                    <video id="remoteVideo" width="600" autoplay muted></video>
+                    <video id="localVideo" width="300" autoplay muted></video>
+                <!-- </div> -->
+            </div>
 
-        <video id="localVideo" autoplay muted></video>
-        <video id="remoteVideo" autoplay muted></video>
-        <!-- <button id="startButton">Начать звонок</button> -->
+        </div>
+
         <script src="static/script.js"></script>
 
     </body>

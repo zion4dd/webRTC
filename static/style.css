@@ -1,0 +1,39 @@
+body {
+    background: #e5e5e5;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    box-sizing: border-box;
+    width: 1219px;
+    margin-left: auto;
+    margin-right: auto;
+    font-family: Calibri, sans-serif;
+} 
+
+#container {
+    display: flex; 
+    align-items: flex-start;
+}
+
+#left {
+    float: left;
+    width: 30%;
+}
+
+#right {
+    float: right;
+    width: 600px;
+    border: 1px solid;
+    border-color: black;
+    border-radius: 10px;
+}
+
+/* #right-in {
+    border: 1px solid;
+    width: 300px;
+    border-color: black;
+    border-radius: 10px;
+} */
+
+.btn {
+    width: 70px;
+}

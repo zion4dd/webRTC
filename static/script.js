@@ -8,6 +8,7 @@ const formButton = document.getElementById("formButton");
 const goCall = document.getElementById("goCall");
 const goCallId = document.getElementById("goCallId");
 const goCallButton = document.getElementById("goCallButton");
+const hangUpButton = document.getElementById("hangUpButton");
 
 const messages = document.getElementById("messages");
 const clients = document.getElementById("clients");
@@ -29,6 +30,7 @@ let peerConnection;
 
 goCallButton.disabled = true;
 formButton.disabled = true;
+hangUpButton.disabled = true;
 
 connect.onsubmit = (event) => {
   event.preventDefault();
@@ -70,7 +72,29 @@ form.onsubmit = (event) => {
 goCall.onsubmit = async (event) => {
   event.preventDefault();
   await startCall();
+  goCallButton.disabled = true;
+  hangUpButton.disabled = false;
 };
+
+hangUpButton.onclick = () => {
+  hangup();
+  ws.send(
+    JSON.stringify({
+      type: "bye",
+      target: target,
+    })
+  );
+};
+
+function hangup() {
+  console.log("Ending call");
+  peerConnection.close();
+  peerConnection = null;
+  localStream.getTracks().forEach((track) => track.stop());
+  localStream = null;
+  hangUpButton.disabled = true;
+  goCallButton.disabled = false;
+}
 
 async function startCall() {
   target = goCallId.value;
@@ -111,6 +135,8 @@ async function handleSignalingMessage(message) {
       .addIceCandidate(new RTCIceCandidate(message.candidate))
       .catch(window.reportError);
     console.log(`addIceCandidate success`);
+  } else if (message.type === "bye") {
+    hangup();
   }
 }
 

@@ -1,7 +1,4 @@
-# uvicorn app:app --reload
-# ws://localhost:8000/ws/111
-# from redis import Redis
-# redis = Redis(host="localhost", port=6379, db=0)
+# uvicorn app:app --reload  # ws://localhost:8000/ws/111
 
 import asyncio
 import logging
@@ -95,7 +92,7 @@ async def call_endpoint(websocket: WebSocket, client_id: str):
                 else:
                     await manager.broadcast(msg=msg)
 
-            elif data.get("type") in ("offer", "answer", "icecandidate"):
+            elif data.get("type") in ("offer", "answer", "icecandidate", "bye"):
                 logging.info(data.get("type"))
                 await manager.send_pm(client_id=data.get("target", None), json=data)
 
